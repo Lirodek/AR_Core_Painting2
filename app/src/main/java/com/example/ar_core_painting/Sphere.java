@@ -95,10 +95,9 @@ public class Sphere {
         for (int i = 0; i < POINT_COUNT ; i++) {
             for (int j = 0; j < POINT_COUNT; j++) {
                 int index = i * POINT_COUNT + j;
-                colors[4 * index + 0 ] = mColor[0];
-                colors[4 * index + 1 ] = mColor[1];
-                colors[4 * index + 2 ] = mColor[2];
-                colors[4 * index + 3 ] = mColor[3];
+                for(int k=0; k<mColor.length; k++)
+                    colors[4 * index + k ] = mColor[k];
+
             }
         }
 

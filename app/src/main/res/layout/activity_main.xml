@@ -1,15 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/btnReset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right|bottom"
+        android:text="Reset" />
+
 
     <android.opengl.GLSurfaceView
         android:id="@+id/glsurfaceview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="top" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="10dp">
+        <SeekBar
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max = "100"
+            android:min = "0"
+            android:progress="50"
+            android:id="@+id/seekbar_colorControl"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:orientation="horizontal"
+            android:padding="10dp">
+
+            <Button
+                android:id="@+id/btn_green"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#00ff00"
+                android:text="Green" />
+
+
+            <Button
+                android:id="@+id/btn_red"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#ff0000"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:text="RED" />
+
+            <Button
+                android:id="@+id/btn_blue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#0000ff"
+                android:text="BLUE" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/chk_flattening"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:text="Screen Draw"
+        android:textColor="@color/black"
+        android:textSize="20dp" />
 
 </FrameLayout>

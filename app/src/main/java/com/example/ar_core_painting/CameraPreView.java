@@ -45,17 +45,22 @@ public class CameraPreView {
             -1.0f,  1.0f,  0.0f,
             1.0f,  -1.0f,  0.0f,
             1.0f,  1.0f,  0.0f
+
     };
+
     static float [] QUARD_TEXCOORDS = {
             0.0f, 1.0f,
             0.0f, 0.0f,
             1.0f, 1.0f,
             1.0f, 0.0f,
+
     };
+
     int [] mTextures;
     FloatBuffer mVertices; //점정보
     FloatBuffer mTexCoords; //텍스쳐좌표
     FloatBuffer mTextCoordsTransformed;
+
     int mProgram;
 
     CameraPreView(){

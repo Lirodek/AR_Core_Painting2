@@ -32,26 +32,27 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
     CameraPreView mCamera;
     PointCloudRenderer mPointCloud;
-    Sphere sphere;
 
-    private final int SIXTEEN = 16;
 
     //화면이 변환되었다면 true,
     boolean viewprotChanged;
-    int width,height;
-    List<Line> linePaths = new ArrayList<>();
 
-    interface RenderCallBack{
+    int width, height;
+
+    List<Line> mPaths = new ArrayList<>();
+
+
+    interface RenderCallBack {
         void preRender();   //MainActivity 에서 재정의하여 호출토록 함
     }
 
     //생성시 RenderCallBack을  매개변수로 대입받아 자신의 멤버로 넣는다
     // MainActivity 에서 생성하므로 MainAcitivity의 것을 받아서 처리가능 토록 한다.
-    MainRenderer(RenderCallBack myCallBack){
+    MainRenderer(RenderCallBack myCallBack) {
 
         mCamera = new CameraPreView();
         mPointCloud = new PointCloudRenderer();
-        sphere = new Sphere();
+        //sphere = new Sphere();
 
         this.myCallBack = myCallBack;
 
@@ -68,7 +69,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         mCamera.init();
         mPointCloud.init();
-        sphere.init();
+        //sphere.init();
 
     }
 
@@ -76,7 +77,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl10, int width, int height) {
         Log.d("MainRenderer : ", "onSurfaceChanged() 실행");
 
-        GLES20.glViewport(0,0,width,height);
+        GLES20.glViewport(0, 0, width, height);
 
         viewprotChanged = true;
         this.width = width;
@@ -99,24 +100,43 @@ public class MainRenderer implements GLSurfaceView.Renderer {
 
         //포인트클라우드 그리기
         mPointCloud.draw();
-        
+
         //점 그리기
-        sphere.draw();
+        //sphere.draw();
+
+
+        /*if(currPath!=null) {
+            if(!currPath.isInited) {
+                currPath.init();
+            }
+            currPath.update();
+            currPath.draw();
+        }*/
+        //모든 라인을 그리기
+        for (Line currPath : mPaths) {
+
+            if (!currPath.isInited) {
+                currPath.init();
+            }
+            currPath.update();
+            currPath.draw();
+
+        }
 
     }
 
     //화면 변환이 되었다는 것을 지시할 메소드 ==> MainActivity 에서 실행할 것이다.
-    void onDisplayChanged(){
+    void onDisplayChanged() {
 
         viewprotChanged = true;
-        Log.d("MainRenderer => onDisplayChanged : ",   viewprotChanged+" 실행");
+        Log.d("MainRenderer => onDisplayChanged : ", viewprotChanged + " 실행");
     }
 
     //session 업데이트시 화면 변환 상태를 보고 session 의 화면을 변경한다.
     //보통 화면 회전에 대한 처리이다.
-    void updateSession(Session session, int rotation){
+    void updateSession(Session session, int rotation) {
         Log.d("MainRenderer : ", "updateSession 실행");
-        if(viewprotChanged){
+        if (viewprotChanged) {
 
             //디스플레이 화면 방향 설정
             session.setDisplayGeometry(rotation, width, height);
@@ -125,48 +145,71 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    int getTextureId(){
-        return mCamera==null ? -1 : mCamera.mTextures[0];
+    int getTextureId() {
+        return mCamera == null ? -1 : mCamera.mTextures[0];
     }
 
 
 //    void transformDisplayGeometry(Frame frame){
 //        mCamera.transformDisplayGeometry(frame);
 //    }
-    
-    
-    void addPoint(float x, float y, float z){
-        float [] matrix = new float[16];
-        Matrix.setIdentityM(matrix, 0);
-        Matrix.translateM(matrix, 0, x, y, z);
 
-        sphere.addNOCnt();
-        sphere.setmModelMatrix(matrix);
 
-       // System.arraycopy(matrix, 0, sphere.mModelMatrix,0,16);
+    void addPoint(float x, float y, float z ) {
+        if(!mPaths.isEmpty()) {
+            Line currPath = mPaths.get(mPaths.size() - 1);
+            currPath.updatePoint(x, y, z);
+        }
     }
 
-    void addLine(float x, float y, float z){
+
+    void addLine(float x, float y, float z, int color, float lineStat) {
+
+        //선 생성
         Line currPath = new Line();
-
         currPath.updateProjMatrix(mProjMatrix);
-
-        float [] matrix = new float[16];
+        currPath.thicknessControl(lineStat);
+        currPath.colorController(color);
+        float[] matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
         Matrix.translateM(matrix, 0, x, y, z);
-//        mLineX.setmModelMatrix(matrix);
+        currPath.setmModelMatrix(matrix);
+
+
+        currPath.updatePoint(x, y, z);//시작점 초기화
+
+
+        //선 리스트에 추가
+        mPaths.add(currPath);
     }
 
-    float[] mProjMatrix = new float[SIXTEEN];
+    float[] mProjMatrix = new float[16];
 
-    public void updateProjMatrix(float [] projMatrix){
-        System.arraycopy(projMatrix, 0, mProjMatrix, 0 , SIXTEEN);
+
+    void updateProjMatrix(float[] projMatrix) {
+        System.arraycopy(projMatrix, 0, mProjMatrix, 0, 16);
         mPointCloud.updateProjMatrix(projMatrix);
+
+        //sphere.updateProjMatrix(projMatrix);
     }
 
-    void updateViewMatrix(float [] viewMatrix){
+    void updateViewMatrix(float[] viewMatrix) {
         mPointCloud.updateViewMatrix(viewMatrix);
-        sphere.updateViewMatrix(viewMatrix);
+        //       sphere.updateViewMatrix(viewMatrix);
 
+//        if(currPath!=null) {
+//            currPath.updateViewMatrix(viewMatrix);
+//        }
+
+        for (Line line : mPaths) {
+            line.updateViewMatrix(viewMatrix);
+        }
+    }
+
+    public void removePath(){
+        if(!mPaths.isEmpty()){
+            mPaths.remove(mPaths.size()-1);
+        }
     }
 }
+
