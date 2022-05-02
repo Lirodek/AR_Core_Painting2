@@ -154,7 +154,7 @@ public class MainRenderer implements GLSurfaceView.Renderer {
         float [] matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
         Matrix.translateM(matrix, 0, x, y, z);
-        mLineX.setmModelMatrix(matrix);
+//        mLineX.setmModelMatrix(matrix);
     }
 
     float[] mProjMatrix = new float[SIXTEEN];
