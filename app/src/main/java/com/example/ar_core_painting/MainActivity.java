@@ -43,6 +43,8 @@ public class MainActivity extends AppCompatActivity {
     Config mConfig;  //ARCore session 설정정보를 받을 변수
 
     onClick onClick = new onClick();
+    SeekbarController seekbarControl = new SeekbarController();
+    MainRenderCallBack callBack;
 
     Button[] btnColors = new Button[3];
     int colorIds[] = {R.id.btn_green, R.id.btn_red, R.id.btn_blue};
@@ -51,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     SeekBar seekBar;
     Button btn_remove;
     CheckBox checkBox;
+
 
     // 이전 점을 받을 배열열
     float[] lastPoint = {0.0f, 0.0f, 0.0f};
@@ -78,28 +81,8 @@ public class MainActivity extends AppCompatActivity {
             btnColors[i].setOnClickListener(onClick);
         }
 
-        btn_remove.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                removeBtnGo(view);
-            }
-        });
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
-                lineStat = progress;
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
+        btn_remove.setOnClickListener(onClick);
+        seekBar.setOnSeekBarChangeListener(seekbarControl);
 
         //MainActivity의 화면 관리 메니져  --> 화면변화를 감지 :: 현재 시스템에서 서비스 지원
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -109,184 +92,27 @@ public class MainActivity extends AppCompatActivity {
         if (displayManager != null) {
             //화면에 대한 리스너 실행
             displayManager.registerDisplayListener(
-
-
                     //익명클래스로 정의
-
                     new DisplayManager.DisplayListener() {
-
-
                         @Override
-
-                        public void onDisplayAdded(int i) {
-
-
-                        }
-
-
+                        public void onDisplayAdded(int i) {}
                         @Override
-
-                        public void onDisplayRemoved(int i) {
-
-
-                        }
-
-
+                        public void onDisplayRemoved(int i) {}
                         //화면이 변경되었다면
-
                         @Override
-
                         public void onDisplayChanged(int i) {
-
-
                             synchronized (this) {
-
                                 //화면 갱신 인지 메소드 실행
-
                                 mRenderer.onDisplayChanged();
-
-
                             }
-
                         }
-
-                    },
-
-                    null
-
-            );
-
+                    }, null);
         }
 
 
-        MainRenderer.RenderCallBack mr = new MainRenderer.RenderCallBack() {
+        callBack = new MainRenderCallBack();
 
-
-            ///렌더링 작업
-
-            @Override
-
-            public void preRender() {
-
-
-                //화면이 회전되었다면
-
-                if (mRenderer.viewprotChanged) {
-
-                    //현재 화면 가져오기
-
-                    Display display = getWindowManager().getDefaultDisplay();
-
-
-                    mRenderer.updateSession(mSession, display.getRotation());
-
-                }
-
-
-                //session 객체와 연결해서 화면 그리기 하기
-
-                mSession.setCameraTextureName(mRenderer.getTextureId());
-
-
-                //화면 그리기에서 사용할 frame --> session 이 업데이트 되면 새로운 프레임을 받는다.
-
-                Frame frame = null;
-
-
-                try {
-                    frame = mSession.update();
-                } catch (CameraNotAvailableException e) {
-                    e.printStackTrace();
-                }
-
-                //화면 (카메라정보)을 바꾸기 위한 작업
-                mRenderer.mCamera.transformDisplayGeometry(frame);
-
-                ////   ↓↓↓↓↓↓   PointCloud 설정구간
-                //ARCore 에 정의된 클래스
-                //현재 프레임에서 특정있는 점들에 대한  포인트 값( 3차원 좌표값 ) 을 받을 객체
-                PointCloud pointCloud = frame.acquirePointCloud();
-
-                // 포인트 값을 적용시키기위해 mainRenderer -> PointCloud.update() 실행
-                mRenderer.mPointCloud.update(pointCloud);
-
-                //사용이 끝난 포인트 자원해제
-                pointCloud.release();
-
-                List<HitResult> arr = frame.hitTest(displayX, displayY);
-
-
-
-                /* 화면 터치시 작업 끝*/
-                //카메라 frame 에서 받는다
-                //--> mPointCloud 에서 렌더링 할때 카메라의 좌표계산을 받아서 처리
-                Camera camera = frame.getCamera();
-
-                camera.getProjectionMatrix(projMatrix, 0, 0.1f, 100.0f);
-                camera.getViewMatrix(viewMatrix, 0);
-
-                //mRenderer.mPointCloud.updateMatrix(viewMatrix, projMatrix);
-                mRenderer.updateProjMatrix(projMatrix);
-                mRenderer.updateViewMatrix(viewMatrix);
-
-
-                // 선 그리기
-                if (checkBox.isChecked()) {
-                    float[] screenPoint = getScreenPoint(displayX, displayY, mRenderer.width, mRenderer.height, projMatrix, viewMatrix);
-                    // 스크린 그리기 상태
-                    if (newPath) {
-                        newPath = false;
-                        mRenderer.addLine(screenPoint[0], screenPoint[1], screenPoint[2], colorStat, lineStat);
-                        for (int i = 0; i < lastPoint.length; i++)
-                            lastPoint[i] = screenPoint[i];
-
-                    } else if (pointAdd) { // 점 추가 라면?
-                        pointAdd = false;
-                        if (sameChk(screenPoint[0], screenPoint[1], screenPoint[2])) {
-                            // 새로운 점점 그리기
-                            mRenderer.addPoint(screenPoint[0], screenPoint[1], screenPoint[2]);
-                            for (int i = 0; i < lastPoint.length; i++)
-                                lastPoint[i] = screenPoint[i];
-                        }
-                    }
-                } else {
-                    /* 화면 터치시 작업 시작*/
-                    if (newPath) {
-                        newPath = false;
-                        int i = 0;
-                        for (HitResult hr : arr) {
-                            Pose pose = hr.getHitPose();
-                            // 새로운 라인 그리기
-                            mRenderer.addLine(pose.tx(), pose.ty(), pose.tz(), colorStat, lineStat);
-                            lastPoint[0] = pose.tx();
-                            lastPoint[1] = pose.ty();
-                            lastPoint[2] = pose.tz();
-                            break;
-                        }
-                    } else if (pointAdd) { // 점 추가 라면?
-                        pointAdd = false;
-                        int i = 0;
-                        for (HitResult hr : arr) {
-                            Pose pose = hr.getHitPose();
-                            if (sameChk(pose.tx(), pose.ty(), pose.tz())) {
-                                // 새로운 점점 그리기
-                                mRenderer.addPoint(pose.tx(), pose.ty(), pose.tz());
-                                lastPoint[0] = pose.tx();
-                                lastPoint[1] = pose.ty();
-                                lastPoint[2] = pose.tz();
-                                break;
-                            }
-                        }
-                    }
-                }
-
-
-            }
-        };
-
-        mRenderer = new
-
-                MainRenderer(mr);
+        mRenderer = new MainRenderer(callBack);
         // pause 시 관련 데이터가 사라지는 것을 막는다.
         mySurView.setPreserveEGLContextOnPause(true);
         mySurView.setEGLContextClientVersion(2); //버전을 2.0 사용
@@ -446,6 +272,115 @@ public class MainActivity extends AppCompatActivity {
         v[1] /= norm;
         v[2] /= norm;
     }
+
+    class MainRenderCallBack implements MainRenderer.RenderCallBack {
+
+        @Override
+        public void preRender() {
+            //화면이 회전되었다면
+            if (mRenderer.viewprotChanged) {
+                //현재 화면 가져오기
+                Display display = getWindowManager().getDefaultDisplay();
+                mRenderer.updateSession(mSession, display.getRotation());
+            }
+
+            //session 객체와 연결해서 화면 그리기 하기
+            mSession.setCameraTextureName(mRenderer.getTextureId());
+
+            //화면 그리기에서 사용할 frame --> session 이 업데이트 되면 새로운 프레임을 받는다.
+            Frame frame = null;
+
+            try {
+                frame = mSession.update();
+            } catch (CameraNotAvailableException e) {
+                e.printStackTrace();
+            }
+
+            //화면 (카메라정보)을 바꾸기 위한 작업
+            mRenderer.mCamera.transformDisplayGeometry(frame);
+
+            ////   ↓↓↓↓↓↓   PointCloud 설정구간
+            //ARCore 에 정의된 클래스
+            //현재 프레임에서 특정있는 점들에 대한  포인트 값( 3차원 좌표값 ) 을 받을 객체
+            PointCloud pointCloud = frame.acquirePointCloud();
+
+            // 포인트 값을 적용시키기위해 mainRenderer -> PointCloud.update() 실행
+            mRenderer.mPointCloud.update(pointCloud);
+
+            //사용이 끝난 포인트 자원해제
+            pointCloud.release();
+
+            List<HitResult> arr = frame.hitTest(displayX, displayY);
+
+
+
+            /* 화면 터치시 작업 끝*/
+            //카메라 frame 에서 받는다
+            //--> mPointCloud 에서 렌더링 할때 카메라의 좌표계산을 받아서 처리
+            Camera camera = frame.getCamera();
+
+            camera.getProjectionMatrix(projMatrix, 0, 0.1f, 100.0f);
+            camera.getViewMatrix(viewMatrix, 0);
+
+            //mRenderer.mPointCloud.updateMatrix(viewMatrix, projMatrix);
+            mRenderer.updateProjMatrix(projMatrix);
+            mRenderer.updateViewMatrix(viewMatrix);
+
+
+            // 선 그리기
+            if (checkBox.isChecked()) {
+                float[] screenPoint = getScreenPoint(displayX, displayY, mRenderer.width, mRenderer.height, projMatrix, viewMatrix);
+                // 스크린 그리기 상태
+                if (newPath) {
+                    newPath = false;
+                    mRenderer.addLine(screenPoint[0], screenPoint[1], screenPoint[2], colorStat, lineStat);
+                    for (int i = 0; i < lastPoint.length; i++)
+                        lastPoint[i] = screenPoint[i];
+
+                } else if (pointAdd) { // 점 추가 라면?
+                    pointAdd = false;
+                    if (sameChk(screenPoint[0], screenPoint[1], screenPoint[2])) {
+                        // 새로운 점점 그리기
+                        mRenderer.addPoint(screenPoint[0], screenPoint[1], screenPoint[2]);
+                        for (int i = 0; i < lastPoint.length; i++)
+                            lastPoint[i] = screenPoint[i];
+                    }
+                }
+            } else {
+                /* 화면 터치시 작업 시작*/
+                if (newPath) {
+                    newPath = false;
+                    int i = 0;
+                    for (HitResult hr : arr) {
+                        Pose pose = hr.getHitPose();
+                        // 새로운 라인 그리기
+                        mRenderer.addLine(pose.tx(), pose.ty(), pose.tz(), colorStat, lineStat);
+                        lastPoint[0] = pose.tx();
+                        lastPoint[1] = pose.ty();
+                        lastPoint[2] = pose.tz();
+                        break;
+                    }
+                } else if (pointAdd) { // 점 추가 라면?
+                    pointAdd = false;
+                    int i = 0;
+                    for (HitResult hr : arr) {
+                        Pose pose = hr.getHitPose();
+                        if (sameChk(pose.tx(), pose.ty(), pose.tz())) {
+                            // 새로운 점점 그리기
+                            mRenderer.addPoint(pose.tx(), pose.ty(), pose.tz());
+                            lastPoint[0] = pose.tx();
+                            lastPoint[1] = pose.ty();
+                            lastPoint[2] = pose.tz();
+                            break;
+                        }
+                    }
+                }
+            }
+
+
+        }
+    }
+
     class onClick implements View.OnClickListener{
         @Override
         public void onClick(View view) {
@@ -455,6 +390,26 @@ public class MainActivity extends AppCompatActivity {
                 colorStat = 2;
             else if(view.getId() == colorIds[2])
                 colorStat = 3;
+            else if(view.getId() == R.id.btnReset)
+                removeBtnGo(view);
+
+        }
+    }
+    class SeekbarController implements SeekBar.OnSeekBarChangeListener{
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean b) {
+            lineStat = progress;
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+
         }
     }
 
